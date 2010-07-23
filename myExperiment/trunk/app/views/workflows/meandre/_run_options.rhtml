@@ -1,0 +1,39 @@
+<div style="margin: 0 0.5em;">
+	<h4>
+		Run this Workflow in Meandre...
+	</h4>
+	
+  <form action="<%= url_for(:action=>'run') %>" method="get">
+	<div class="option_box">
+		
+		<p style="text-align: center;">
+			<b>Select Meandre Instance:</b>
+		</p>
+		
+		<p style="font-size: 93%; text-align: center;">
+			Input the URL of a running Meandre-Infrastructure instance to run this workflow against:
+			Host: <input type="text" name="meandre_host"/><br/>
+			Port: <input type="text" name="meandre_port"/><br/>
+			User: <input type="text" name="meandre_user"><br/>
+			Password: <input type="password" name="meandre_password">
+		</p>
+
+		
+			
+	</div>
+  <div class="option_box">
+		
+		<p style="text-align: center;">
+			<b>Input Collection URI</b>
+		</p>
+		
+		<p style="font-size: 93%; text-align: center;">
+			Collection: <input type="text" name="meandre_collection"/><br/>
+		</p>
+
+		
+			
+	</div>
+ <input type="submit" value="Run Flow" />
+  </form>
+</div>

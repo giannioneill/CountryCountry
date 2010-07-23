@@ -1,0 +1,24 @@
+
+	    
+	<!-- nodes -->
+        <div class="fold">
+      <div class="foldTitle">
+        <img alt="Information" src="/images/famfamfam_silk/information.png?1255538658" style="vertical-align:middle;" title="header=[] body=[This is information extracted about components from the workflow] cssheader=[boxoverTooltipHeader] cssbody=[boxoverTooltipBody] delay=[200]" />
+        Components (2)
+      </div>
+      <div class="foldContent" style="display: none;">
+                  <table class="simple">
+                          <tr>
+                <td>Push Text</td>
+              </tr>
+                          <tr>
+                <td>Print To Console</td>
+              </tr>
+            
+          </table>
+        
+      </div>
+    </div>
+    
+   
+  

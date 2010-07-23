@@ -1,0 +1,56 @@
+	  
+
+
+<div class="myexperiment_gadget">
+  <b class="xtop"><b class="xb1"></b><b class="xb2"></b><b class="xb3"></b><b class="xb4"></b></b>
+
+  <div class="header">
+      <center><div style="text-align:center; width: 66px; line-height: 1.2em; padding: 0.2em 0;">
+	<a href="http://192.168.56.101:3000/users/2"><img alt="Avatar" class="framed" height="60" src="/images/avatar.png?1255538658" title="Dgc3" width="60" /></a>
+	<span style="display:block;margin-top:2px;text-align:center;">
+		
+			
+		
+		
+		
+		  <a href="http://192.168.56.101:3000/users/2" title="header=[] body=[Dgc3] cssheader=[boxoverTooltipHeader] cssbody=[boxoverTooltipBody] delay=[200]">Dgc3</a>
+		
+		
+		
+		
+	</span>
+</div>
+</center>
+  </div>
+  
+  <div id="myexp_usermonitor_gadget_contents" class="contents">
+	<ul class="gadget_list">
+	  <li>
+	  	<span class="icon"><a href="http://192.168.56.101:3000/users/2"><img alt="Profile" src="/images/famfamfam_silk/user_suit.png?1255538658" />  My Profile</a></span>
+			<span style="color: #666666; margin-left: 0.5em;">
+				<small>[ <a href="/users/2/profile/edit">edit</a> ]</small>
+			</span>
+		</li>
+    <li><span class="icon"><a href="/messages"><img alt="Message" src="/images/famfamfam_silk/email.png?1255538658" /> My Messages</a></span></li>
+    <li><span class="icon"><a href="/users/2/memberships"><img alt="Membership" src="/images/famfamfam_silk/vcard.png?1255538658" /> My Memberships</a></span></li>
+	  <li><span class="icon"><a href="http://192.168.56.101:3000/users/2/userhistory"><img alt="History" src="/images/famfamfam_silk/time.png?1255538658" /> My History</a></span></li>
+	  <li><span class="icon"><a href="/home"><img alt="News" src="/images/famfamfam_silk/newspaper.png?1255538658" /> My News</a></span></li>
+  </ul>
+	
+	
+	
+    
+    
+    
+	
+		
+	
+		
+  </div>
+  
+  <b class="xbottom"><b class="xb5"></b><b class="xb6"></b><b class="xb7"></b><b class="xb1"></b></b>
+</div>
+
+
+
+        

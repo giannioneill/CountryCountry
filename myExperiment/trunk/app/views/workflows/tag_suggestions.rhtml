@@ -1,0 +1,35 @@
+<%= javascript_include_tag "tag_suggestions.js" %>
+
+<h1>Tags</h1>
+
+<h2>Automatic tag suggestions</h2>
+
+<p>The following tag suggestions are based on the content of your workflow.
+Click on each tag that you wish to use.<p>
+
+<div class="box_simple" style="font-size: 93%; text-align: left; margin: 2em;">
+  <div id="suggestions"></div>
+</div>
+
+<p><em>Note: Tag suggestions are given by matching words in your workflow with other
+tags already used in <%= Conf.sitename %>.</em></p>
+
+<h2>Summary</h2>
+
+<div id="summary-text"></div>
+
+<form action="<%= "/workflows/#{@workflow.id}/process_tag_suggestions" %>" method="post">
+  <p style="text-align: center">
+    <input id="submit-button" type="submit" value="Continue" />
+    <input type="hidden" name="tag_list" id="tag_list" />
+  </p>
+</form>
+
+<script type="text/ecmascript">
+  <% @suggestions.each do |suggestion| %>
+    defineTag("<%= suggestion %>");
+  <% end %>
+
+  updateTagViews();
+</script>
+

@@ -1,0 +1,25 @@
+  	  
+
+
+<div class="myexperiment_gadget">
+  <b class="xtop"><b class="xb1"></b><b class="xb2"></b><b class="xb3"></b><b class="xb4"></b></b>
+
+  <div class="header">
+    <p>
+      <b>My Favourites</b><br />
+      <small>
+      	<a href="/users/2/favourites">0 favourites</a>
+			</small>
+    </p>
+  </div>
+    
+  <div id="myexp_assetmanager_gadget_contents" class="contents">
+    <div class="content">
+						
+    </div>
+	</div>
+  
+  <b class="xbottom"><b class="xb5"></b><b class="xb6"></b><b class="xb7"></b><b class="xb1"></b></b>
+</div>
+
+        
