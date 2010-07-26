@@ -1,0 +1,64 @@
+			
+
+<div class="myexperiment_gadget">
+  <b class="xtop"><b class="xb1"></b><b class="xb2"></b><b class="xb3"></b><b class="xb4"></b></b>
+    
+  <div class="header">
+    <p>Log in / Register</p>
+  </div>
+  
+  <div class="contents">
+    <form action="/session" method="post">
+      <div class="box1">
+		  	<p class="label">
+	        Username or Email:
+		  	</p>
+			  <p>
+		    	<input class="field" id="session[username]" name="session[username]" style="width: 140px;" type="text" />
+			  </p>
+	      <p class="label">
+					Password:
+				</p>
+		  	<p>
+	      	<input class="field" id="session[password]" name="session[password]" style="width: 140px;" type="password" />
+		  	</p>
+		  	<p class="label">
+	      	Remember me: <input id="session[remember_me]" name="session[remember_me]" type="checkbox" value="1" />
+	      </p>
+	  	</div>
+	  
+	  	<p><b>OR</b></p>
+            
+    	<div class="box1" style="margin-bottom: 0.4em;">
+		  	<p class="label">
+	         Use OpenID:
+		  	</p>
+		  	<p>
+	        <input class="field" id="openid_url" name="openid_url" size="17" style="width: 130px;" type="text" />
+					<br/>
+					<span style="font-size: 77%; color: #333333;">(eg: name.myopenid.com)</span>
+	      </p>
+  		</div>
+	    
+	    <p>
+	      <input name="commit" onclick="this.disabled=true;this.value='Logging in...';this.form.submit();" type="submit" value="Log in" />
+	    </p>
+	  
+    </form>
+    
+    <p style="margin-top: 0.6em; line-height: 1.3em; font-size: 93%;">
+      <b>Need an account?</b><br />
+      <b><a href="http://192.168.56.101:3000/users/new">Click here to register</a></b>
+    </p>
+		
+		<p style="margin-top: 0.6em; font-size: 93%;">
+			<b><a href="/users/forgot_password">Forgot Password?</a></b>
+		</p>
+  </div>
+  
+  <b class="xbottom"><b class="xb5"></b><b class="xb6"></b><b class="xb7"></b><b class="xb1"></b></b>
+</div>
+
+
+
+		
