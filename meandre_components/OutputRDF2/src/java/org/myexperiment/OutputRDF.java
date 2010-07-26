@@ -10,8 +10,19 @@
 
 package org.myexperiment;
 
+import java.io.File;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Vector;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.imirsel.m2k.io.file.MP3ThreadedAudioPlayer;
+import org.imirsel.m2k.util.Signal;
+import org.imirsel.m2k.util.noMetadataException;
+import org.imirsel.meandre.m2k.StreamTerminator;
 import org.meandre.annotations.Component;
 import org.meandre.annotations.ComponentInput;
 import org.meandre.annotations.ComponentOutput;
@@ -21,33 +32,18 @@ import org.meandre.core.ComponentContextException;
 import org.meandre.core.ComponentContextProperties;
 import org.meandre.core.ComponentExecutionException;
 import org.meandre.core.ExecutableComponent;
+import org.meandre.core.logger.KernelLoggerFactory;
 
-import java.net.*;
-import java.io.*;
-import java.util.Vector;
-
-import java.util.logging.Level;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
-import com.hp.hpl.jena.rdf.model.NodeIterator;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.ResIterator;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
+import com.hp.hpl.jena.vocabulary.DC;
 import com.hp.hpl.jena.vocabulary.RDF;
-import com.hp.hpl.jena.vocabulary.VCARD;
-
-
-import org.meandre.webui.WebUIFragmentCallback;
-import org.meandre.webui.WebUIException;
-
-//for annotations
-import org.imirsel.m2k.io.file.MP3ThreadedAudioPlayer;
-import org.imirsel.m2k.util.Signal;
-import org.imirsel.m2k.util.noMetadataException;
-import org.imirsel.meandre.m2k.StreamTerminator;
-import org.meandre.core.logger.KernelLoggerFactory;
+import com.sun.org.apache.xerces.internal.impl.dv.util.HexBin;
 
 @Component(creator = "Gianni O'Neill", description = "This component adds RDF assertions about the audio to a RDF model.", name = "OutputRDF", tags = "xml", firingPolicy = Component.FiringPolicy.any)
 public class OutputRDF implements ExecutableComponent {
@@ -58,21 +54,29 @@ public class OutputRDF implements ExecutableComponent {
     @ComponentInput(description = "signal object conatining the metadata for the audio files(signal)", name = INPUT_2_signal)
     public final static String INPUT_3_likelihoodFrame = "likelihoodFrame";
     @ComponentInput(description = "classificaiton likelihood frames for the signal object(vector of storing vector)", name = INPUT_3_likelihoodFrame)
-    public final static String INPUT_4_rdfmodel = "RDF_Model_In";
-    @ComponentInput(description = "JENA RDF Model", name = INPUT_4_rdfmodel)
+    public final static String INPUT_4_modelnames = "RDF_Modelnames";
+    @ComponentInput(description = "JENA RDF Model", name = INPUT_4_modelnames)
     public final static String OUTPUT_rdf = "RDF_Model_Out";
     @ComponentOutput(description = "rdf model", name = OUTPUT_rdf)
     /** The instance ID */
     private String sInstanceID = null; 
     
     private final static String MO = "http://purl.org/ontology/mo/";
+    private final static String MUSIM = "http://purl.org/ontology/similarity/";
+    private final static String PV = "http://purl.org/net/provenance/ns#";
+    private final static String ORE = "http://www.openarchives.org/ore/terms/";
     
     //store data
     private Signal signal;
     private Vector<String[]> classNames;
+    private Vector<String> modelNames;
     private Vector<Vector<double[]>> historyVectorOfModelVectorOfClassLikelihoods;
-    private Resource performance;
+    private Resource track;
+    private Resource aggregate;
+    private Map<String, Resource> classMap;
     private Model model;
+    private String flowURI;
+    private int count; // for counting the URIs
 //    private double duration;
     File destAudio; //destination file for copy to public/resources directory
 
@@ -158,12 +162,8 @@ public class OutputRDF implements ExecutableComponent {
 
 
 
-			double maxScore = 0;
-			String maxScoreClass = "";
-            for (int classIndex = 0; classIndex < modelClassNames.length; classIndex++) {
+			for (int classIndex = 0; classIndex < modelClassNames.length; classIndex++) {
             	String className = modelClassNames[classIndex];
-            	className = className.replaceAll("&", "And");
-            	
             	
             	int valueSum = 0;
             	
@@ -182,14 +182,33 @@ public class OutputRDF implements ExecutableComponent {
                 
                 double avgScore = valueSum/numberOfFrames;
                 
-                if(avgScore > maxScore){
-                	maxScore = avgScore;
-                	maxScoreClass = className;
+                //add data to model here
+                Resource assoc = model.createResource(this.flowURI+"#assoc"+count);
+                Resource method = model.createResource(this.flowURI+"#method"+count);
+                count++;
+                
+                assoc.addProperty(RDF.type, model.createResource(MUSIM+"Association"));
+                assoc.addProperty(model.createProperty(MUSIM, "subject"), track);
+                assoc.addProperty(model.createProperty(MUSIM, "weight"), 
+                		model.createTypedLiteral(avgScore));
+                
+                assoc.addProperty(model.createProperty(MUSIM, "method"), method);
+                aggregate.addProperty(model.createProperty(ORE, "aggregates"), assoc);
+                
+                Resource classResource;
+                if((classResource = classMap.get(className)) != null){
+                	assoc.addProperty(model.createProperty(MUSIM,"object"), classResource);
+                }else{
+                	assoc.addProperty(model.createProperty(MUSIM,"object"), className);
                 }
-            }
+                
+                method.addProperty(RDF.type, model.createResource(MUSIM+"AssociationMethod"));
+                method.addProperty(model.createProperty(PV, "usedGuideline"), 
+                		model.createResource(modelNames.get(modelIndex)));
+                
             
-            //add data to model here
-            performance.addProperty(genre, maxScoreClass);
+			}
+            
         }
 
     }
@@ -249,9 +268,9 @@ public class OutputRDF implements ExecutableComponent {
                 }
             }
 
-            if (cc.isInputAvailable(INPUT_4_rdfmodel)) {
-                Object input = cc.getDataComponentFromInput(INPUT_4_rdfmodel);
-                model = (Model) input;
+            if (cc.isInputAvailable(INPUT_4_modelnames)) {
+                Object input = cc.getDataComponentFromInput(INPUT_4_modelnames);
+                modelNames = (Vector<String>) input;
                 input4 = true;
             }
 
@@ -261,6 +280,8 @@ public class OutputRDF implements ExecutableComponent {
             if (input1 && input2 && input3 && input4) {
 //                log.info("################################ executing CreateBlinkieXML: got all inputs");
             	String fileUri = signal.getStringMetadata(Signal.PROP_FILE_LOCATION);
+            	this.model = model.read(fileUri);
+            	
             	Resource audioFile = model.getResource(fileUri);
             	Statement encodesProp = audioFile.getProperty(model.createProperty(MO, "encodes"));
             	RDFNode signal;
@@ -270,18 +291,20 @@ public class OutputRDF implements ExecutableComponent {
                 	model.read(signal.toString());
             	}else{
             		//mint URI here
-            		signal = model.createResource("http://example.com/signal/");
+            		signal = model.createResource(this.flowURI+"#signal");
             		model.add((Resource)signal, RDF.type, model.createResource(MO+"Signal"));
             	}
             	
             	
-            	ResIterator iter = model.listSubjectsWithProperty(model.createProperty(MO,"recorded_as"), signal);
-            	if(iter.hasNext()){
-            		performance = iter.next();
+            	Resource signalResource = model.getResource(signal.toString());
+            	Statement releaseProp = signalResource.getProperty(model.createProperty(MO,"published_as")); 
+            	if(releaseProp != null){
+            		RDFNode tracknode = releaseProp.getObject();
+            		track = model.getResource(tracknode.toString());
             	}else{
             		//mint URI here
-            		performance = model.createResource("http://example.com/performance/");
-            		model.add(performance, model.createProperty(MO,"recorded_as"), signal);
+            		track = model.createResource(this.flowURI+"#track");
+            		model.add(track, model.createProperty(MO,"available_as"), audioFile);
             	}
             	addGenreAssertion();
                 
@@ -302,21 +325,51 @@ public class OutputRDF implements ExecutableComponent {
     int frameDurationInMS = 1000;
     protected transient static Logger log = KernelLoggerFactory.getCoreLogger();
 
-    public void initialize() {
+    /*public void initialize() {
         signal = null;
         classNames = null;
         historyVectorOfModelVectorOfClassLikelihoods = new Vector();
         input1 = false;
         input2 = false;
         input3 = false;
-    }
+    }*/
 
     public void initialize(ComponentContextProperties ccp) {
-        signal = null;
+        try {
+			MessageDigest md = MessageDigest.getInstance("SHA");
+			String hash = HexBin.encode(md.digest(ccp.getFlowExecutionInstanceID().getBytes()));
+			this.flowURI = "http://results.nema.ecs.soton.ac.uk/"+hash;
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return;
+		}
+    	signal = null;
         classNames = null;
         historyVectorOfModelVectorOfClassLikelihoods = new Vector();
         input1 = false;
         input2 = false;
         input3 = false;
+        this.model = ModelFactory.createDefaultModel();
+        
+        aggregate = model.createResource(this.flowURI+"#aggregate");
+        aggregate.addProperty(RDF.type, model.createResource(ORE+"Aggregation"));
+        
+        Resource rm = model.createResource(this.flowURI);
+        rm.addProperty(RDF.type, model.createResource(ORE+"ResourceMap"));
+        rm.addProperty(model.createProperty(ORE,"describes"), aggregate);
+        rm.addProperty(DC.creator, "http://enactor.nema.ecs.soton.ac.uk/about.rdf#enactor");
+        
+        classMap = new HashMap<String, Resource>();
+        classMap.put("Baroque", model.createResource("http://dbpedia.org/page/Baroque_music"));
+        classMap.put("Romantic", model.createResource("http://dbpedia.org/page/Romantic_music"));
+        classMap.put("Classical", model.createResource("http://dbpedia.org/page/Classical_music"));
+        classMap.put("Country", model.createResource("http://dbpedia.org/resource/Country_music"));
+        classMap.put("Blues", model.createResource("http://dbpedia.org/resource/Blues"));
+        classMap.put("Jazz", model.createResource("http://dbpedia.org/resource/Jazz"));
+        classMap.put("Electronica & Dance", model.createResource("http://dbpedia.org/resource/Electronica"));
+        classMap.put("HipHop & Rap", model.createResource("http://dbpedia.org/resource/Hip_hop_music"));
+        classMap.put("HardRock & Metal", model.createResource("http://dbpedia.org/resource/Hard_rock"));
+        classMap.put("Rock", model.createResource("http://dbpedia.org/resource/Rock_music"));
+        classMap.put("Rock & Roll", model.createResource("http://dbpedia.org/resource/Rock_and_roll"));
     }
 }
