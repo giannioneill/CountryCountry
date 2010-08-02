@@ -321,8 +321,12 @@ class WorkflowsController < ApplicationController
           #FIXME: flow_component_instance should be retrieved from parser
           fields << 'flow_component_instance='+details.uri+'/instance/push-string/0'
           fields << 'property_name=string';
-          fields << 'property_value='+file+',http://192.168.56.1/BlinkieGenreSupportVectorVersion2.ser0.serial';
-          c.http_post(*fields)
+          fields << 'property_value='+file+',http://results.nema.ecs.soton.ac.uk/classifiers/BlinkieGenreSupportVectorVersion2.ser0.serial,http://results.nema.ecs.soton.ac.uk/classifiers/BlinkieGenreJ48DecisionTree.ser0.serial';
+          begin
+            c.http_post(*fields)
+          rescue
+            q.push(file)
+          end
         end
       end
     end
@@ -339,6 +343,10 @@ class WorkflowsController < ApplicationController
       flash[:error] = 'Host and Port are required'
       redirect_to :action=>'show'
       return
+    end
+
+    #GET /workflows/1/run_collection
+    def run_collection
     end
 
     curl = Curl::Easy.new(params[:meandre_collection])
