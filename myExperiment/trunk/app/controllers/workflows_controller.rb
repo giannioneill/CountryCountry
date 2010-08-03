@@ -234,6 +234,10 @@ class WorkflowsController < ApplicationController
   
   # GET /workflows/all
   def all
+    if params[:collection] != nil
+      session[:collection] = params[:collection]
+      flash[:notice] = "Please select a workflow to run against this collection.";
+    end
     respond_to do |format|
       format.html # all.rhtml
     end
