@@ -10,6 +10,10 @@
 
 package org.myexperiment;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.util.logging.Logger;
 
 import org.meandre.annotations.Component;
@@ -22,31 +26,30 @@ import org.meandre.core.ComponentContextProperties;
 import org.meandre.core.ComponentExecutionException;
 import org.meandre.core.ExecutableComponent;
 
-import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.ResIterator;
-import com.hp.hpl.jena.rdf.model.Resource;
+import uk.co.magus.fourstore.client.Store;
 
-/** This executable component queries the RDF data and 
- *  extracts the relevent details
+import com.hp.hpl.jena.rdf.model.Model;
+
+/** 
+ *
+ *This component takes a JENA model as input and writes it to a 4store
  *
  * @author Gianni O'Neill;
  *
  */
-@Component(creator="Gianni O'Neill", description="Extracts relevent details from an RDF model", 
-		name="GetDetails",
-		tags="extract query rdf")
-public class GetDetails implements ExecutableComponent {
+@Component(creator="Giani O'Neill", description="Takes a JENA model as input and writes it to a 4store", 
+		name="AddTo4Store",
+		tags="rdf triple store 4store")
+public class AddTo4Store implements ExecutableComponent {
 
 
-	@ComponentInput(description="JENA RDF Model", name="rdf")
-	final static String DATA_INPUT_RDF= "rdf";	
-
-	@ComponentOutput(description="File location", name="location")
-	final static String DATA_OUTPUT_LOC= "location";
+	@ComponentInput(description="JENA model", name="model")
+	final static String DATA_INPUT_MODEL= "model";
 	
-	@ComponentOutput(description="URI", name="uri")
-	final static String DATA_OUTPUT_URI= "uri";
+	@ComponentProperty(description="4Store address", 
+			name = "url",
+			defaultValue = "http://localhost:8000")
+	final static String DATA_PROPERTY_URL = "url";
 
 	
 	// log messages are here
@@ -72,16 +75,20 @@ public class GetDetails implements ExecutableComponent {
 
 	 */
 	public void execute(ComponentContext cc) throws ComponentExecutionException, ComponentContextException {
-		Model model = (Model) cc.getDataComponentFromInput(DATA_INPUT_RDF);
-		Property availableAs = model.createProperty("http://purl.org/ontology/mo/","available_as");
-		ResIterator iter = model.listSubjectsWithProperty(availableAs); 
-		if(!iter.hasNext()){
-			throw new ComponentExecutionException("There are no 'available_as' predicates!");
+		Model model = (Model) cc.getDataComponentFromInput(DATA_INPUT_MODEL);
+		OutputStream os = new ByteArrayOutputStream();
+		model.write(os);
+		String rdf = os.toString();
+		
+		
+		try{
+			Store store = new Store(cc.getProperty(DATA_PROPERTY_URL));
+			store.add(cc.getFlowExecutionInstanceID(), rdf, Store.InputFormat.XML);
+		}catch(MalformedURLException e){
+			throw new ComponentExecutionException(e.getMessage());
+		}catch(IOException e){
+			throw new ComponentExecutionException(e.getMessage());
 		}
-		Resource r = iter.next();
-		String loc = r.getProperty(availableAs).getObject().toString();
-		cc.pushDataComponentToOutput(DATA_OUTPUT_LOC, loc);
-		cc.pushDataComponentToOutput(DATA_OUTPUT_URI, r);
 	}
 
 	/** This method is called when the Menadre Flow execution is completed.
