@@ -307,6 +307,10 @@ class WorkflowsController < ApplicationController
     q = Queue.new
     audioFiles.each{ |f| q.push(f) }
 
+    #TODO: remove this -- it's a hack so i could resume
+    #a half complete Job
+    1075.times{ q.pop(false) }
+
     #now to execute the flow changing the input paramaters each time
     2.times do
       spawn do
