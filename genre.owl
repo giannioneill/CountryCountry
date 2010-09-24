@@ -2,26 +2,26 @@
 
 
 <!DOCTYPE rdf:RDF [
+    <!ENTITY mo "http://purl.org/ontology/mo/" >
     <!ENTITY owl "http://www.w3.org/2002/07/owl#" >
     <!ENTITY xsd "http://www.w3.org/2001/XMLSchema#" >
     <!ENTITY similarity "http://purl.org/ontology/similarity/" >
     <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#" >
     <!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#" >
-    <!ENTITY genre "http://nema.ecs.soton.ac.uk/ontologies/genre.owl#" >
+    <!ENTITY classification "http://nema.ecs.soton.ac.uk/ontologies/classification#" >
 ]>
 
 
 <rdf:RDF xmlns="http://nema.ecs.soton.ac.uk/ontologies/genre.owl#"
      xml:base="http://nema.ecs.soton.ac.uk/ontologies/genre.owl"
-     xmlns:genre="http://nema.ecs.soton.ac.uk/ontologies/genre.owl#"
      xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:mo="http://purl.org/ontology/mo/"
+     xmlns:classification="http://nema.ecs.soton.ac.uk/ontologies/classification#"
      xmlns:owl="http://www.w3.org/2002/07/owl#"
      xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
      xmlns:similarity="http://purl.org/ontology/similarity/"
      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-    <owl:Ontology rdf:about="http://nema.ecs.soton.ac.uk/ontologies/genre.owl">
-        <owl:imports rdf:resource="http://purl.org/ontology/similarity/"/>
-    </owl:Ontology>
+    <owl:Ontology rdf:about="http://nema.ecs.soton.ac.uk/ontologies/classification"/>
     
 
 
@@ -36,17 +36,66 @@
     
 
 
-    <!-- http://nema.ecs.soton.ac.uk/ontologies/genre.owl#GenreAssociation -->
+    <!-- http://nema.ecs.soton.ac.uk/ontologies/classification#MoodAssociation -->
 
-    <owl:Class rdf:about="&genre;GenreAssociation">
+    <owl:Class rdf:about="&classification;MoodAssociation">
         <rdfs:subClassOf rdf:resource="&similarity;Association"/>
     </owl:Class>
+    
+
+
+    <!-- http://nema.ecs.soton.ac.uk/ontologies/genre.owl#GenreAssociation -->
+
+    <owl:Class rdf:about="http://nema.ecs.soton.ac.uk/ontologies/genre.owl#GenreAssociation">
+        <rdfs:subClassOf rdf:resource="&similarity;Association"/>
+    </owl:Class>
+    
+
+
+    <!-- http://purl.org/ontology/mo/Genre -->
+
+    <owl:Class rdf:about="&mo;Genre"/>
     
 
 
     <!-- http://purl.org/ontology/similarity/Association -->
 
     <owl:Class rdf:about="&similarity;Association"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://nema.ecs.soton.ac.uk/ontologies/classification#ElectronicaAndDance -->
+
+    <owl:NamedIndividual rdf:about="&classification;ElectronicaAndDance">
+        <rdf:type rdf:resource="&mo;Genre"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://nema.ecs.soton.ac.uk/ontologies/classification#HardRockAndHeavyMetal -->
+
+    <owl:NamedIndividual rdf:about="&classification;HardRockAndHeavyMetal">
+        <rdf:type rdf:resource="&mo;Genre"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://nema.ecs.soton.ac.uk/ontologies/classification#HipHopAndRap -->
+
+    <owl:NamedIndividual rdf:about="&classification;HipHopAndRap">
+        <rdf:type rdf:resource="&mo;Genre"/>
+    </owl:NamedIndividual>
 </rdf:RDF>
 
 

@@ -16,6 +16,7 @@ import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.StreamCorruptedException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Vector;
 import java.util.logging.Logger;
 
@@ -85,7 +86,8 @@ public class ReadSerializedObjectFromURL implements ExecutableComponent {
      */
     public void execute(ComponentContext cc)
             throws ComponentExecutionException, ComponentContextException {
-        System.out.println("\nReadSerializedObject");
+        try{
+    	System.out.println("\nReadSerializedObject");
 
         //for seasr only
         modelNames = (Vector)cc.getDataComponentFromInput(DATA_INPUT);
@@ -96,31 +98,39 @@ public class ReadSerializedObjectFromURL implements ExecutableComponent {
             InputStream fin;
             try{
             	URL url = new URL(modelName);
+            	URLClassLoader cl = (URLClassLoader)ClassLoader.getSystemClassLoader();
+            	for(URL u : cl.getURLs()){
+            		cc.getOutputConsole().println("Tried -- "+u.toString());
+            	}
             	fin = url.openStream();
             }catch(IOException e){
-            	throw new RuntimeException("Cannot connect to URL");
+            	throw new ComponentExecutionException("Cannot connect to URL");
             }
             ObjectInputStream in;
             try {
                 in = new ObjectInputStream(fin);
             } catch(IOException ioe) {
-                throw new RuntimeException("I/O error occured while reading stream header",ioe);
+                throw new ComponentExecutionException("I/O error occured while reading stream header",ioe);
             }
             Object theOb;
             try {
                 theOb = in.readObject();
                 theObs.add(theOb);
             } catch(ClassNotFoundException cnf) {
-                throw new RuntimeException("The class of the Serialized Object could not be found!",cnf);
+                throw new ComponentExecutionException("The class of the Serialized Object could not be found!",cnf);
             } catch(InvalidClassException ice) {
-                throw new RuntimeException("Something is wrong with a class used by Serialization (wrong JRE version?)!",ice);
+                throw new ComponentExecutionException("Something is wrong with a class used by Serialization (wrong JRE version?)!",ice);
             } catch(StreamCorruptedException sce) {
-                throw new RuntimeException("Control information in the stream is inconsistent!", sce);
+                throw new ComponentExecutionException("Control information in the stream is inconsistent!", sce);
             } catch(IOException ioe) {
-                throw new RuntimeException("I/O error occured while reading in Object",ioe);
+                throw new ComponentExecutionException("I/O error occured while reading in Object",ioe);
             }
 
         }
         cc.pushDataComponentToOutput(DATA_OUTPUT, theObs);
+        }catch(NullPointerException n){
+        	n.printStackTrace(cc.getOutputConsole());
+        	throw new ComponentExecutionException("NULL POINTER!!!!");
+        }
     }
 }

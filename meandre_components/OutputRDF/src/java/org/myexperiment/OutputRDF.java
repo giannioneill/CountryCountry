@@ -38,7 +38,6 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.RDFNode;
-import com.hp.hpl.jena.rdf.model.ResIterator;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.vocabulary.DC;
@@ -58,6 +57,8 @@ public class OutputRDF implements ExecutableComponent {
     @ComponentInput(description = "JENA RDF Model", name = INPUT_4_modelnames)
     public final static String OUTPUT_rdf = "RDF_Model_Out";
     @ComponentOutput(description = "rdf model", name = OUTPUT_rdf)
+    public final static String OUTPUT_frames = "RDF_Frames_Out";
+    @ComponentOutput(description = "frame data as CSV", name = OUTPUT_frames)
     /** The instance ID */
     private String sInstanceID = null; 
     
@@ -65,17 +66,21 @@ public class OutputRDF implements ExecutableComponent {
     private final static String MUSIM = "http://purl.org/ontology/similarity/";
     private final static String PV = "http://purl.org/net/provenance/ns#";
     private final static String ORE = "http://www.openarchives.org/ore/terms/";
+    private final static String ECS = "http://results.nema.ecs.soton.ac.uk/ontologies/classification#";
+    private final static String OFF = "http://purl.org/ontology/off/";
     
     //store data
     private Signal signal;
     private Vector<String[]> classNames;
     private Vector<String> modelNames;
     private Vector<Vector<double[]>> historyVectorOfModelVectorOfClassLikelihoods;
-    private Resource track;
+    private Resource signalResource;
     private Resource aggregate;
+    private Resource meandreFlow;
     private Map<String, Resource> classMap;
     private Model model;
     private String flowURI;
+    private String flowHash;
     private int count; // for counting the URIs
 //    private double duration;
     File destAudio; //destination file for copy to public/resources directory
@@ -90,10 +95,34 @@ public class OutputRDF implements ExecutableComponent {
     boolean input4;
     
     
-    /** A simple message.
-     *
-     * @return The HTML containing the page
-     */
+    private String getFrameDataCSV(){
+    	StringBuffer buf = new StringBuffer();
+    	for(int i=0; i < modelNames.size(); i++){
+    		buf.append("#model: "+modelNames.get(i)+"\n");
+    		buf.append("#");
+    		String[] classes = classNames.get(i);
+    		for(String c : classes){
+    			if(classMap.containsKey(c)){
+    				buf.append(classMap.get(c)+",");
+    			}else{
+    				buf.append(c+",");
+    			}
+    		}
+    		buf.deleteCharAt(buf.length()-1);
+    		buf.append("\n");
+    		
+    		for(int j=0; j<this.historyVectorOfModelVectorOfClassLikelihoods.size(); j++){
+    			double[] classPDF = this.historyVectorOfModelVectorOfClassLikelihoods.get(j).get(i);
+    			for(int k=0; k<classes.length; k++){
+    				buf.append(classPDF[k]+",");
+    			}
+    			buf.deleteCharAt(buf.length()-1);
+    			buf.append("\n");
+    		}
+    	}
+    	return buf.toString();
+    }
+    
     private void addGenreAssertion() throws Exception {
     	 
     	Property genre = model.createProperty(MO, "genre");
@@ -165,18 +194,14 @@ public class OutputRDF implements ExecutableComponent {
 			for (int classIndex = 0; classIndex < modelClassNames.length; classIndex++) {
             	String className = modelClassNames[classIndex];
             	
-            	int valueSum = 0;
+            	double valueSum = 0;
             	
                 for (int historyIndex = 0; historyIndex < numberOfFrames; historyIndex++) {
 
                     double[] theFrame = historyVectorOfModelVectorOfClassLikelihoods.elementAt(historyIndex).elementAt(modelIndex);
                     double value = theFrame[classIndex];
 
-                    int intValue = (int) (value * 100);
-
-                    int frameOffset = 5;
-					
-					valueSum += intValue;
+					valueSum += value;
                     
                 }
                 
@@ -187,10 +212,11 @@ public class OutputRDF implements ExecutableComponent {
                 Resource method = model.createResource(this.flowURI+"#method"+count);
                 count++;
                 
-                assoc.addProperty(RDF.type, model.createResource(MUSIM+"Association"));
-                assoc.addProperty(model.createProperty(MUSIM, "subject"), track);
+                assoc.addProperty(RDF.type, model.createResource(ECS+"GenreAssociation"));
+                assoc.addProperty(model.createProperty(MUSIM, "subject"), signalResource);
                 assoc.addProperty(model.createProperty(MUSIM, "weight"), 
                 		model.createTypedLiteral(avgScore));
+                assoc.addProperty(model.createProperty(PV, "createdBy"), meandreFlow);
                 
                 assoc.addProperty(model.createProperty(MUSIM, "method"), method);
                 aggregate.addProperty(model.createProperty(ORE, "aggregates"), assoc);
@@ -246,14 +272,6 @@ public class OutputRDF implements ExecutableComponent {
 //                log.info("################################ executing CreateBlinkieXML: got input #2");
                 signal = (Signal) (cc.getDataComponentFromInput(INPUT_2_signal));
                 input2 = true;
-                MP3ThreadedAudioPlayer player = null;
-                try {
-                    player = new MP3ThreadedAudioPlayer(signal.getFile());
-                //player.init();
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-//                duration = (int)(player.getDuration()*1000);
             }
 
             if (cc.isInputAvailable(INPUT_3_likelihoodFrame)) {
@@ -271,6 +289,10 @@ public class OutputRDF implements ExecutableComponent {
             if (cc.isInputAvailable(INPUT_4_modelnames)) {
                 Object input = cc.getDataComponentFromInput(INPUT_4_modelnames);
                 modelNames = (Vector<String>) input;
+                for(String name : modelNames){
+                	meandreFlow.addProperty(model.createProperty(PV, "usedGuideLine"), 
+                			model.createResource(name));
+                }
                 input4 = true;
             }
 
@@ -283,6 +305,7 @@ public class OutputRDF implements ExecutableComponent {
             	this.model = model.read(fileUri);
             	
             	Resource audioFile = model.getResource(fileUri);
+            	meandreFlow.addProperty(model.createProperty(PV, "usedData"), audioFile);
             	Statement encodesProp = audioFile.getProperty(model.createProperty(MO, "encodes"));
             	RDFNode signal;
             	if(encodesProp != null){
@@ -294,24 +317,19 @@ public class OutputRDF implements ExecutableComponent {
             		signal = model.createResource(this.flowURI+"#signal");
             		model.add((Resource)signal, RDF.type, model.createResource(MO+"Signal"));
             	}
+            	signalResource = model.createResource(signal.toString());
             	
+            	Resource off = model.createResource("http://results.nema.ecs.soton.ac.uk/data/frame/"+flowHash);
+            	off.addProperty(RDF.type, model.createResource(OFF+"FeatureFile"));
+            	off.addProperty(model.createProperty(OFF, "subject"), signalResource);
             	
-            	Resource signalResource = model.getResource(signal.toString());
-            	Statement releaseProp = signalResource.getProperty(model.createProperty(MO,"published_as")); 
-            	if(releaseProp != null){
-            		RDFNode tracknode = releaseProp.getObject();
-            		track = model.getResource(tracknode.toString());
-            	}else{
-            		//mint URI here
-            		track = model.createResource(this.flowURI+"#track");
-            		model.add(track, model.createProperty(MO,"available_as"), audioFile);
-            	}
             	addGenreAssertion();
                 
 
 //                log.info("################################ executing CreateBlinkieXML xml:" + xml);
 
                 cc.pushDataComponentToOutput(OUTPUT_rdf, model);
+                cc.pushDataComponentToOutput(OUTPUT_frames, getFrameDataCSV());
             }
 
 
@@ -335,10 +353,10 @@ public class OutputRDF implements ExecutableComponent {
     }*/
 
     public void initialize(ComponentContextProperties ccp) {
-        try {
+    	try {
 			MessageDigest md = MessageDigest.getInstance("SHA");
-			String hash = HexBin.encode(md.digest(ccp.getFlowExecutionInstanceID().getBytes()));
-			this.flowURI = "http://results.nema.ecs.soton.ac.uk/"+hash;
+			this.flowHash = HexBin.encode(md.digest(ccp.getFlowExecutionInstanceID().getBytes()));
+			this.flowURI = "http://results.nema.ecs.soton.ac.uk/"+flowHash;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return;
@@ -359,16 +377,19 @@ public class OutputRDF implements ExecutableComponent {
         rm.addProperty(model.createProperty(ORE,"describes"), aggregate);
         rm.addProperty(DC.creator, "http://enactor.nema.ecs.soton.ac.uk/about.rdf#enactor");
         
+        meandreFlow = model.createResource(ccp.getFlowExecutionInstanceID());
+        meandreFlow.addProperty(RDF.type, model.createResource(PV+"DataCreation"));
+        
         classMap = new HashMap<String, Resource>();
-        classMap.put("Baroque", model.createResource("http://dbpedia.org/page/Baroque_music"));
-        classMap.put("Romantic", model.createResource("http://dbpedia.org/page/Romantic_music"));
-        classMap.put("Classical", model.createResource("http://dbpedia.org/page/Classical_music"));
+        classMap.put("Baroque", model.createResource("http://dbpedia.org/resource/Baroque_music"));
+        classMap.put("Romantic", model.createResource("http://dbpedia.org/resource/Romantic_music"));
+        classMap.put("Classical", model.createResource("http://dbpedia.org/resource/Classical_music"));
         classMap.put("Country", model.createResource("http://dbpedia.org/resource/Country_music"));
         classMap.put("Blues", model.createResource("http://dbpedia.org/resource/Blues"));
         classMap.put("Jazz", model.createResource("http://dbpedia.org/resource/Jazz"));
-        classMap.put("Electronica & Dance", model.createResource("http://dbpedia.org/resource/Electronica"));
-        classMap.put("HipHop & Rap", model.createResource("http://dbpedia.org/resource/Hip_hop_music"));
-        classMap.put("HardRock & Metal", model.createResource("http://dbpedia.org/resource/Hard_rock"));
+        classMap.put("Electronica & Dance", model.createResource(ECS+"ElectronicaAndDance"));
+        classMap.put("Rap & Hip Hop", model.createResource(ECS+"RapAndHipHop"));
+        classMap.put("Hard Rock & Metal", model.createResource(ECS+"HardRockAndHeavyMetal"));
         classMap.put("Rock", model.createResource("http://dbpedia.org/resource/Rock_music"));
         classMap.put("Rock & Roll", model.createResource("http://dbpedia.org/resource/Rock_and_roll"));
     }

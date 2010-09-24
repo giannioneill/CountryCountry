@@ -10,6 +10,7 @@
 
 package org.myexperiment;
 
+import java.io.ByteArrayOutputStream;
 import java.util.logging.Logger;
 
 import org.meandre.annotations.Component;
@@ -21,29 +22,26 @@ import org.meandre.core.ComponentContextException;
 import org.meandre.core.ComponentContextProperties;
 import org.meandre.core.ComponentExecutionException;
 import org.meandre.core.ExecutableComponent;
-import java.util.Vector;
 
-/** This executable component turns a String into a Vector<String>
- * @author Gianni O'Neill;
+import com.hp.hpl.jena.rdf.model.Model;
+
+/** This executable component just concatenates the two input strings received
+ * pushing it to the output.
+ *
+ * @author John Doe;
  *
  */
-@Component(creator="Gianni O'Neill", description="Vectorize String", 
-		name="VectorizeString",
-		tags="string adaptor vector")
-public class VectorizeString implements ExecutableComponent {
+@Component(creator="Gianni O'Neill", description="takes an RDF model as input and converts to a java string", 
+		name="ModelToString",
+		tags="rdf jena model string out")
+public class ModelToString implements ExecutableComponent {
 
 
-	@ComponentInput(description="String", name="string")
-	final static String DATA_INPUT_1= "string";
+	@ComponentInput(description="RDF Model", name="rdf")
+	final static String DATA_INPUT_RDF = "rdf";
 	
-
-	@ComponentOutput(description="Vector", name="vector")
-	final static String DATA_OUTPUT_1= "vector";
-	
-	@ComponentProperty(description="Seperator", 
-			name = "sep",
-			defaultValue = ",")
-	final static String DATA_PROPERTY_SEP = "sep";
+	@ComponentOutput(description="Output String", name="string_out")
+	final static String DATA_OUTPUT_STR= "string_out";
 
 	
 	// log messages are here
@@ -69,13 +67,10 @@ public class VectorizeString implements ExecutableComponent {
 
 	 */
 	public void execute(ComponentContext cc) throws ComponentExecutionException, ComponentContextException {
-		String str = (String) cc.getDataComponentFromInput(DATA_INPUT_1);
-		String[] bits = str.split(cc.getProperty(DATA_PROPERTY_SEP));
-		Vector<String> v = new Vector<String>();
-		for(String bit : bits){
-			v.add(bit);
-		}
-		cc.pushDataComponentToOutput(DATA_OUTPUT_1, v);
+		Model m = (Model) cc.getDataComponentFromInput(DATA_INPUT_RDF);
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		m.write(stream);
+		cc.pushDataComponentToOutput(DATA_OUTPUT_STR, stream.toString());
 	}
 
 	/** This method is called when the Menadre Flow execution is completed.

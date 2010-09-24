@@ -66,6 +66,16 @@ public class GStreamerRead implements ExecutableComponent {
 	@ComponentOutput(description="Sample Rate", name="rate")
 	final static String DATA_OUTPUT_RATE = "rate";
 	
+	@ComponentProperty(description="Username", 
+			name = "username",
+			defaultValue = "")
+	final static String DATA_PROPERTY_USER = "username";
+	
+	@ComponentProperty(description="Username", 
+			name = "password",
+			defaultValue = "")
+	final static String DATA_PROPERTY_PASS = "password";
+	
 	// log messages are here
 	private Logger _logger;
 	
@@ -80,7 +90,8 @@ public class GStreamerRead implements ExecutableComponent {
 		
 	}
 	
-	private static Pipeline makePipe(final String uri, final ComponentContext cc) throws URISyntaxException{
+	private static Pipeline makePipe(final String uri, final ComponentContext cc) 
+		throws URISyntaxException, ComponentContextException{
 		Pipeline pipe = new Pipeline("getaudiopipe");
 		final AppSink sink = (AppSink) ElementFactory.make("appsink", "samplesink");
 		sink.set("emit-signals", true);
@@ -101,9 +112,14 @@ public class GStreamerRead implements ExecutableComponent {
 				}
 			}
 		});
-		
+		String username = (String)cc.getDataComponentFromInput(DATA_PROPERTY_USER);
+		String password = (String)cc.getDataComponentFromInput(DATA_PROPERTY_PASS);
 		Element src = ElementFactory.make("souphttpsrc","src");
 		src.set("user-agent","GStreamer Input Component");
+		if(!username.equals("")){
+			src.set("user-id", username);
+			src.set("user-pw", password);
+		}
 		src.set("location",uri);
 		src.set("extra-headers", Structure.fromString("extra-headers, Accept=audio/mpeg"));
 		Element decoder = ElementFactory.make("mad","decoder");
