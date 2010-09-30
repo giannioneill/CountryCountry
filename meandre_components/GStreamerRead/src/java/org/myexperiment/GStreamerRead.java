@@ -91,7 +91,7 @@ public class GStreamerRead implements ExecutableComponent {
 	}
 	
 	private static Pipeline makePipe(final String uri, final ComponentContext cc) 
-		throws URISyntaxException, ComponentContextException{
+		throws URISyntaxException, ComponentContextException, ComponentExecutionException{
 		Pipeline pipe = new Pipeline("getaudiopipe");
 		final AppSink sink = (AppSink) ElementFactory.make("appsink", "samplesink");
 		sink.set("emit-signals", true);
@@ -112,8 +112,20 @@ public class GStreamerRead implements ExecutableComponent {
 				}
 			}
 		});
-		String username = (String)cc.getDataComponentFromInput(DATA_PROPERTY_USER);
-		String password = (String)cc.getDataComponentFromInput(DATA_PROPERTY_PASS);
+		pipe.getBus().connect(new Bus.ERROR() {
+			public void errorMessage(GstObject obj, int code, String message) {
+				cc.requestFlowAbortion();
+				Gst.quit();
+			}
+		});
+		pipe.getBus().connect(new Bus.EOS() {
+			public void endOfStream(GstObject obj) {
+				Gst.quit();
+			}
+		});
+		
+		String username = (String)cc.getProperty(DATA_PROPERTY_USER);
+		String password = (String)cc.getProperty(DATA_PROPERTY_PASS);
 		Element src = ElementFactory.make("souphttpsrc","src");
 		src.set("user-agent","GStreamer Input Component");
 		if(!username.equals("")){
@@ -128,11 +140,6 @@ public class GStreamerRead implements ExecutableComponent {
 		
 		pipe.addMany(src, decoder, converter, resampler, sink);
 		
-		pipe.getBus().connect(new Bus.EOS() {
-			public void endOfStream(GstObject arg0) {
-				Gst.quit();
-			}
-		});
 		
 		src.link(decoder);
 		decoder.link(converter);
