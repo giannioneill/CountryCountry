@@ -234,6 +234,10 @@ class WorkflowsController < ApplicationController
   
   # GET /workflows/all
   def all
+    if params[:collection] != nil
+      session[:collection] = params[:collection]
+      flash[:notice] = "Please select a workflow to run against this collection.";
+    end
     respond_to do |format|
       format.html # all.rhtml
     end
@@ -303,6 +307,10 @@ class WorkflowsController < ApplicationController
     q = Queue.new
     audioFiles.each{ |f| q.push(f) }
 
+    #TODO: remove this -- it's a hack so i could resume
+    #a half complete Job
+    1075.times{ q.pop(false) }
+
     #now to execute the flow changing the input paramaters each time
     2.times do
       spawn do
@@ -321,8 +329,12 @@ class WorkflowsController < ApplicationController
           #FIXME: flow_component_instance should be retrieved from parser
           fields << 'flow_component_instance='+details.uri+'/instance/push-string/0'
           fields << 'property_name=string';
-          fields << 'property_value='+file+',http://192.168.56.1/BlinkieGenreSupportVectorVersion2.ser0.serial';
-          c.http_post(*fields)
+          fields << 'property_value='+file+',http://results.nema.ecs.soton.ac.uk/classifiers/BlinkieGenreSupportVectorVersion2.ser0.serial,http://results.nema.ecs.soton.ac.uk/classifiers/BlinkieGenreJ48DecisionTree.ser0.serial';
+          begin
+            c.http_post(*fields)
+          rescue
+            q.push(file)
+          end
         end
       end
     end
@@ -339,6 +351,10 @@ class WorkflowsController < ApplicationController
       flash[:error] = 'Host and Port are required'
       redirect_to :action=>'show'
       return
+    end
+
+    #GET /workflows/1/run_collection
+    def run_collection
     end
 
     curl = Curl::Easy.new(params[:meandre_collection])
